@@ -22,22 +22,23 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
+    if message.author.bot:
+        return
+    result = ""
+    mentioned = discord.utils.get(message.mentions, id=bot.user.id)
+    if mentioned:
+        await message.channel.send("https://tenor.com/view/able-red-dwarf-kryten-memory-remember-gif-13822450")
+    prompt = message.content[len(f"<@!{bot.user.id}>"):]
     try:
-        if message.author.bot:
-            return
-
-        mentioned = discord.utils.get(message.mentions, id=bot.user.id)
-        if mentioned:
-            await message.channel.send("https://tenor.com/view/able-red-dwarf-kryten-memory-remember-gif-13822450")
-        prompt = message.content[len(f"<@!{bot.user.id}>"):]
         result = await thinking(prompt)
-        result = result[len(prompt)+1:]
-        if mentioned:
-            await message.channel.send(f'{result}')
-        else:
-            await bot.process_commands(message)
     except Exception as error:
         await message.channel.send(f'{error}\n'
                                    f'https://tenor.com/en-GB/view/mm-let-me-think-about-it-no-hal-yorke-lord-harry-sarcasm-vampire-gif-19603504')
+    result = result[len(prompt)+1:]
+    if mentioned:
+        await message.channel.send(f'{result}')
+    else:
+        await bot.process_commands(message)
+
 
 bot.run(TOKEN)
