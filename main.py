@@ -26,6 +26,8 @@ async def on_message(message):
         return
 
     mentioned = discord.utils.get(message.mentions, id=bot.user.id)
+    if mentioned:
+        await message.channel.send("https://tenor.com/view/able-red-dwarf-kryten-memory-remember-gif-13822450")
     prompt = message.content[len(f"<@!{bot.user.id}>"):]
     result = await thinking(prompt)
     result = result[len(prompt)+1:]
