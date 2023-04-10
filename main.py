@@ -73,9 +73,13 @@ async def play(ctx, *, query: str):
 async def play_next(ctx):
     if ctx.guild.id not in queues or not queues[ctx.guild.id]:
         await ctx.send("No more songs in the queue.")
+        await mp3_cleaner(ctx)
+        voice_client = ctx.guild.voice_client
+        await voice_client.disconnect()
         return
 
-    url = queues[ctx.guild.id].pop(0)
+    song_data = queues[ctx.guild.id].pop(0)
+    url = song_data["url"]
 
     voice_channel = ctx.author.voice.channel
     voice_client = ctx.guild.voice_client
@@ -111,14 +115,21 @@ async def play_next(ctx):
 
 @bot.command(name='queue')
 async def show_queue(ctx):
+    voice_client = ctx.guild.voice_client
+    if voice_client and voice_client.is_playing():
+        current_song = voice_client.source.data["title"]
+        message = f"Currently playing: {current_song}\n\n"
+    else:
+        message = ""
+
     if ctx.guild.id in queues and queues[ctx.guild.id]:
         queue = queues[ctx.guild.id]
-        message = "Current song queue:\n"
-        for i, url in enumerate(queue, start=1):
-            message += f"{i}. {url}\n"
+        message += "Song queue:\n"
+        for i, song_data in enumerate(queue, start=1):
+            message += f"{i}. {song_data['title']}\n"
         await ctx.send(message)
     else:
-        await ctx.send("The song queue is empty.")
+        await ctx.send(f"{message}The song queue is empty.")
 
 
 class YTDLSource(discord.PCMVolumeTransformer):
@@ -147,10 +158,16 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
 
 async def add_to_queue(guild_id, url):
+    yt = YouTube(url)
+    song_data = {
+        "title": yt.title,
+        "url": url,
+        "id": yt.video_id,
+    }
     if guild_id in queues:
-        queues[guild_id].append(url)
+        queues[guild_id].append(song_data)
     else:
-        queues[guild_id] = [url]
+        queues[guild_id] = [song_data]
 
 
 async def search_youtube(query):
