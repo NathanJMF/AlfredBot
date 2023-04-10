@@ -109,6 +109,17 @@ async def play_next(ctx):
     await mp3_cleaner(ctx)
 
 
+@bot.command(name='queue')
+async def show_queue(ctx):
+    if ctx.guild.id in queues and queues[ctx.guild.id]:
+        queue = queues[ctx.guild.id]
+        message = "Current song queue:\n"
+        for i, url in enumerate(queue, start=1):
+            message += f"{i}. {url}\n"
+        await ctx.send(message)
+    else:
+        await ctx.send("The song queue is empty.")
+
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
