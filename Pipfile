@@ -6,5 +6,10 @@ name = "pypi"
 [packages]
 discord = "*"
 pyllamacpp = "*"
+PyNaCl = "*"
+pytube = "*"
+youtube-search-python = "*"
+youtube-dl = "*"
+python-slugify = "*"
 
 [dev-packages]

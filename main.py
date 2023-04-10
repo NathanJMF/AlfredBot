@@ -1,6 +1,13 @@
+import asyncio
+import glob
+import os
+import re
+
 import discord
 from discord.ext import commands
-
+from pytube import YouTube
+from slugify import slugify
+from youtubesearchpython import VideosSearch
 from brains import thinking
 from secrets import token
 
@@ -12,6 +19,7 @@ intents.guilds = True
 intents.presences = True
 intents.members = True
 intents.message_content = True
+intents.messages = True
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
 
@@ -20,25 +28,92 @@ async def on_ready():
     print(f'{bot.user.name} is now online!')
 
 
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-    result = ""
-    mentioned = discord.utils.get(message.mentions, id=bot.user.id)
-    if mentioned:
-        await message.channel.send("https://tenor.com/view/able-red-dwarf-kryten-memory-remember-gif-13822450")
-    prompt = message.content[len(f"<@!{bot.user.id}>"):]
-    try:
-        result = await thinking(prompt)
-    except Exception as error:
-        await message.channel.send(f'{error}\n'
-                                   f'https://tenor.com/en-GB/view/mm-let-me-think-about-it-no-hal-yorke-lord-harry-sarcasm-vampire-gif-19603504')
-    result = result[len(prompt)+1:]
-    if mentioned:
-        await message.channel.send(f'{result}')
+@bot.command(name='stop')
+async def stop(ctx):
+    voice_client = ctx.guild.voice_client
+
+    if voice_client and voice_client.is_connected():
+        if voice_client.is_playing():
+            voice_client.stop()
+            await asyncio.sleep(1)  # Wait for the player to stop before disconnecting and removing the file
+        await voice_client.disconnect()
     else:
-        await bot.process_commands(message)
+        await ctx.send("I'm not connected to a voice channel.")
+    await mp3_cleaner(ctx)
+
+
+@bot.command(name='play')
+async def play(ctx, *, query: str):
+    voice_channel = ctx.author.voice.channel
+    if not voice_channel:
+        await ctx.reply('You need to be in a voice channel to play music!')
+        return
+
+    url_pattern = re.compile(
+        r"(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})"
+    )
+    is_url = url_pattern.match(query)
+    if not is_url:
+        # Search for YouTube link
+        query = await search_youtube(query)
+
+    voice_client = await voice_channel.connect()
+    try:
+        player, filename = await YTDLSource.from_url(query, loop=bot.loop, guild_name=ctx.guild.name)
+        while not os.path.isfile(filename):
+            await asyncio.sleep(1)  # Wait for the file to be downloaded
+        await ctx.reply(f'Now playing: {query}')
+        print(filename)
+        await ctx.reply(f'File name: {filename}')
+        voice_client.play(player)
+        while voice_client.is_playing():
+            await asyncio.sleep(1)
+
+        await voice_client.disconnect()
+    except Exception as e:
+        print(e)
+        await ctx.reply('https://tenor.com/view/mgs-metal-gear-fucky-wucky-uh-oh-gif-24704061')
+        await voice_client.disconnect()
+    await mp3_cleaner(ctx)
+
+
+class YTDLSource(discord.PCMVolumeTransformer):
+    def __init__(self, source, *, data, volume=0.5):
+        super().__init__(source, volume)
+        self.data = data
+
+    @classmethod
+    async def from_url(cls, url, *, loop=None, guild_name=None):
+        loop = loop or asyncio.get_event_loop()
+
+        def pytube_extract_info():
+            yt = YouTube(url)
+            stream = yt.streams.filter(only_audio=True).first()
+            sanitized_title = slugify(f"{yt.title}-{guild_name}-{yt.video_id}", max_length=100)
+            # Append the server name to the filename
+            filename = f"{sanitized_title}.mp3"
+            if not stream:
+                raise Exception("No audio stream found")
+            if not stream.download(filename=filename):
+                raise Exception("Unable to download audio stream")
+            return {"url": filename, "title": yt.title, "id": yt.video_id}, filename
+
+        data, filename = await loop.run_in_executor(None, pytube_extract_info)
+        return cls(discord.FFmpegPCMAudio(filename), data=data), filename
+
+
+async def search_youtube(query):
+    search_results = VideosSearch(query, limit=1).result()
+    return search_results["result"][0]["link"]
+
+
+async def mp3_cleaner(ctx):
+    # Remove any MP3 files in the project directory
+    for mp3_file in glob.glob("*.mp3"):
+        try:
+            os.remove(mp3_file)
+        except PermissionError:
+            await ctx.send(f"Couldn't remove {mp3_file} because it is being used by another process.")
 
 
 bot.run(TOKEN)
