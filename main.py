@@ -2,16 +2,16 @@ import asyncio
 import glob
 import os
 import re
-
 import discord
+from brains import thinking
 from discord.ext import commands
 from pytube import YouTube
 from slugify import slugify
 from youtubesearchpython import VideosSearch
-from brains import thinking
 from secrets import token
+
 queues = {}
-TOKEN = token  # Replace this with your bots token
+TOKEN = token
 PREFIX = '!'  # You can choose any prefix you like
 
 intents = discord.Intents.default()
@@ -92,8 +92,6 @@ async def play_next(ctx):
             await asyncio.sleep(1)  # Wait for the file to be downloaded
 
         await ctx.reply(f'Now playing: {url}')
-        print(filename)
-        await ctx.reply(f'File name: {filename}')
 
         def play_next_song(error):
             if error:
