@@ -1,7 +1,4 @@
-import asyncio
 import re
-
-import discord
 import requests
 from pytube import YouTube
 from slugify import slugify
@@ -24,26 +21,18 @@ async def search_youtube(query):
     return response.url
 
 
-class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=0.5):
-        super().__init__(source, volume)
-        self.data = data
+async def download_mp3(video_url, guild_name):
+    yt = YouTube(video_url)
+    stream = yt.streams.filter(only_audio=True).first()
+    sanitized_title = slugify(f"{yt.title}-{guild_name}-{yt.video_id}", max_length=100)
+    # Append the server name to the filename
+    filename = f"{sanitized_title}.mp3"
+    if not stream:
+        raise Exception("No audio stream found")
+    if not stream.download(filename=filename):
+        raise Exception("Unable to download audio stream")
+    return {"url": filename, "title": yt.title, "id": yt.video_id}, filename
 
-    @classmethod
-    async def from_url(cls, url, *, loop=None, guild_name=None):
-        loop = loop or asyncio.get_event_loop()
 
-        def pytube_extract_info():
-            yt = YouTube(url)
-            stream = yt.streams.filter(only_audio=True).first()
-            sanitized_title = slugify(f"{yt.title}-{guild_name}-{yt.video_id}", max_length=100)
-            # Append the server name to the filename
-            filename = f"{sanitized_title}.mp3"
-            if not stream:
-                raise Exception("No audio stream found")
-            if not stream.download(filename=filename):
-                raise Exception("Unable to download audio stream")
-            return {"url": filename, "title": yt.title, "id": yt.video_id}, filename
-
-        data, filename = await loop.run_in_executor(None, pytube_extract_info)
-        return cls(discord.FFmpegPCMAudio(filename), data=data), filename
+async def add_song_to_queue():
+    pass

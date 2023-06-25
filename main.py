@@ -1,13 +1,13 @@
 import asyncio
 import discord
 from discord.ext import commands
-from audio_system import voice_channel_check
-from helper import check_provided_song_query, YTDLSource
+from audio_system import voice_channel_check, YTDLSource, create_mp3_player
+from helper import check_provided_song_query, download_mp3
 from secrets import token
 
 queues = {}
 TOKEN = token
-PREFIX = '`'  # You can choose any prefix you like
+PREFIX = '`'
 
 intents = discord.Intents.default()
 intents.guilds = True
@@ -55,7 +55,8 @@ async def play(ctx, *, query=None):
     # Will determine if the query is a URL, if not then it will search for and return the URL
     video_url = await check_provided_song_query(query)
     # Download the audio as a mp3 file
-    player, filename = await YTDLSource.from_url(video_url, loop=bot.loop, guild_name=ctx.guild.name)
+    player_helper_data, file_name = await download_mp3(video_url, ctx.guild.name)
+    player = await create_mp3_player(file_name, player_helper_data)
     voice_client.play(player)
     await ctx.send(f"Now Playing:\n{video_url}")
     while voice_client.is_playing():
