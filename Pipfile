@@ -11,5 +11,6 @@ pytube = "*"
 youtube-search-python = "*"
 youtube-dl = "*"
 python-slugify = "*"
+requests = "*"
 
 [dev-packages]

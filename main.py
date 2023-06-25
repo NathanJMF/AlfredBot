@@ -1,14 +1,8 @@
 import asyncio
-import glob
-import os
-import re
 import discord
-import requests
-from audio_system import voice_channel_check
-# from brains import thinking
 from discord.ext import commands
-from pytube import YouTube
-from slugify import slugify
+from audio_system import voice_channel_check
+from helper import check_provided_song_query, YTDLSource
 from secrets import token
 
 queues = {}
@@ -40,39 +34,33 @@ async def on_message(message):
 
 @bot.command(name="play")
 async def play(ctx, *, query=None):
-    # TODO
-    #  Handle no query
-    #  Handle user not in VC
-    #  Handle differentiation between url and title
-    #  Retrieve MP3 of desired youtube content
     # Handles the event where no query is provided by the user
+    # TODO Add ability to insta kick people
     if not query:
         print("NO QUERY!")
         await ctx.send("Please provide either a song name or a YouTube URL")
         await ctx.send("https://tenor.com/view/dumbass-alert-roblox-arsenal-default-dance-ur-dumb-gif-19042964")
         return
+    # Handles the event where user is not in a voice channel
     user_voice = ctx.author.voice
     user_voice_channel = await voice_channel_check(user_voice)
     if not user_voice_channel:
         return
-    output = f"GUILD: {ctx.guild}\n" \
-             f"AUTHOR: {ctx.author}\n" \
-             f"VOICE: {user_voice}\n" \
-             f"VC: {user_voice_channel}\n" \
-             f"MESSAGE: {ctx.message}\n" \
-             f"QUERY: {query}"
-    print(output)
-    voice_channel = ctx.author.voice.channel
-    print(ctx.guild.voice_client)
+    # Grabs the user's voice channel
+    voice_channel = user_voice.channel
     voice_client = ctx.guild.voice_client
     if not voice_client:
+        # Connect the bot to the voice channel if it is not already connected
         voice_client = await voice_channel.connect()
-        await voice_client.disconnect()
-
-    url = f"https://api.duckduckgo.com/?q={query}+youtube+!&format=json"
-    repsonse = requests.get(url, allow_redirects=True)
-    print(repsonse.url)
-    await ctx.send(output)
+    # Will determine if the query is a URL, if not then it will search for and return the URL
+    video_url = await check_provided_song_query(query)
+    # Download the audio as a mp3 file
+    player, filename = await YTDLSource.from_url(video_url, loop=bot.loop, guild_name=ctx.guild.name)
+    voice_client.play(player)
+    await ctx.send(f"Now Playing:\n{video_url}")
+    while voice_client.is_playing():
+        await asyncio.sleep(1)
+    await voice_client.disconnect()
 
 
 @bot.command(name="stop")
@@ -94,7 +82,5 @@ async def queue(ctx):
 async def skip(ctx):
     pass
 
-#
 
-#
 bot.run(TOKEN)
