@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 
 # Secrets
-secrets.py
+brain/secrets.py
+ears/secrets.py

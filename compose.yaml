@@ -1,0 +1,36 @@
+services:
+  alfred_brain:
+    container_name: alfred_brain_container
+    networks:
+      - alfred_net
+    hostname: alfred_brain
+    build: ./brain
+    ports:
+      - "8080:80"
+    volumes:
+      - ./brain:/home/pandafen/AlfredBot/brain
+    image: alfred_brain_image
+    deploy:
+      resources:
+        limits:
+          cpus: '3'
+
+  alfred_ears:
+    container_name: alfred_ears_container
+    networks:
+      - alfred_net
+    hostname: alfred_ears
+    build: ./ears
+    ports:
+      - "8081:81"
+    volumes:
+      - ./ears:/home/pandafen/AlfredBot/ears
+    image: alfred_ears_image
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+
+networks:
+  alfred_net:
+    external: true
