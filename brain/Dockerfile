@@ -20,4 +20,4 @@ RUN pipenv install --system --deploy
 COPY . .
 
 # Run your bot
-CMD ["python", "brain_api.py"]
+CMD ["python", "main.py"]

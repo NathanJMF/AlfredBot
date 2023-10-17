@@ -1,9 +1,6 @@
 import asyncio
-
 from gpt4all import GPT4All
-from concurrent.futures import ThreadPoolExecutor
 
-executor = ThreadPoolExecutor(max_workers=4)
 lock = asyncio.Lock()
 
 

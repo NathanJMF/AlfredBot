@@ -1,30 +1,29 @@
-from gpt4all import GPT4All
-from brains import brain_query
+from quart import Quart, request, jsonify
+from brains import brain_query, set_up_model
 
 
-model_to_use = "alfred_brain.bin"
-model = "test"
-system_template = ("Conversation between Batman and the digital resurrection of Alfred Pennyworth who is in eternal "
-                   "suffering and pain. Alfred must answer every one of Bruce's questions.")
-first_chat = True
+app = Quart(__name__)
+model = None
 
 
+@app.before_serving
+async def start_up():
+    global model
+    model = await set_up_model()
 
-async def on_message(message):
-    global first_chat
-    message_content = message.content
+
+@app.route('/generate', methods=['POST'])
+async def generate_response():
+    current_request = await request.get_json()
+    prompt = current_request.get('prompt', '')
+    response = await brain_query(prompt, model)
+    return jsonify({'response': response}), 200
 
 
-    pruned_message = message_content
+@app.route('/', methods=['get'])
+async def test():
+    return jsonify({'response': "I'M ALIVE"}), 200
 
-    print(pruned_message)
-    print("Thinking")
-    if first_chat:
-        # first_chat = False
-        pruned_message = system_template + pruned_message
 
-    response = await brain_query(f"{pruned_message}", model)
-
-    print(response)
-    return response
-
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
