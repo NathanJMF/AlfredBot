@@ -15,8 +15,7 @@ intents.members = True
 intents.message_content = True
 intents.messages = True
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
-system_template = ("Conversation between Batman and the digital resurrection of Alfred Pennyworth who is in eternal "
-                   "suffering and pain. Alfred must answer every one of Bruce's questions.")
+system_template = "Conversation between Batman and a digital Alfred Pennyworth"
 first_chat = True
 
 
